@@ -9,9 +9,6 @@ class RegionGrowing(object):
         self.img_path = 'shadedobj.png'
         self.img = cv.imread(self.img_path, cv.IMREAD_REDUCED_GRAYSCALE_2)
 
-        if not os.path.exists(str(self.diff_threshold)):
-            os.mkdir(str(self.diff_threshold))
-
     def get4neighbours(self, x, y):
         out = []
         maxx = self.img.shape[0]-1
@@ -44,38 +41,50 @@ class RegionGrowing(object):
             print('Seed: (' + str(y) + ', ' + str(x),') ', self.img[y,x])
             self.clicks.append((y,x))
 
-    def region_growing(self, seed):
+    def region_growing(self, seeds):
         checkpoints = []
         outimg = np.zeros_like(self.img)
-        checkpoints.append((seed[0], seed[1]))
+        for seed in seeds:
+            checkpoints.append([(seed[0], seed[1])])
         processed = np.zeros(self.img.shape, dtype=np.bool)
-        while(len(checkpoints) > 0):
-            p = checkpoints.pop(0)
-            processed[p] = True
-            outimg[p[0], p[1]] = 255
-            for q in self.get4neighbours(p[0], p[1]):
-                if abs(self.img[q[0], q[1]].astype('float32')  - self.img[p[0], p[1]].astype('float32')) < self.diff_threshold:
-                    outimg[q[0], q[1]] = 255
-                    if not processed[q]:
-                        checkpoints.append(q)
-                    processed[q] = True
 
-            cv.imshow("Progress",outimg)
-            cv.waitKey(1)
-        return outimg
+        step = 0
+        while (checkpoints != [[]] * len(seeds)):
+            for i in range(len(seeds)):
+                if len(checkpoints[i]) > 0:
+                    p = checkpoints[i].pop(0)
+                    processed[p] = True
+                    outimg[p[0], p[1]] = 255
+                    for q in self.get4neighbours(p[0], p[1]):
+                        if abs(self.img[q[0], q[1]].astype('float32')  - self.img[p[0], p[1]].astype('float32')) < self.diff_threshold:
+                            outimg[q[0], q[1]] = 255
+                            if not processed[q]:
+                                checkpoints[i].append(q)
+                            processed[q] = True
+
+                    cv.imshow("Progress",outimg)
+                    cv.waitKey(1)
+                    if step % 200 == 0:
+                        cv.imwrite(str(len(self.clicks))+'_seeds'+'/region_growing_'+str(step)+'.png',outimg)
+
+            step += 1
+        print("DONE")
+        cv.destroyAllWindows()
+        cv.imwrite(str(len(self.clicks))+'_seeds'+'/region_growing_final.png',outimg)
 
     def segmentation(self):
         self.clicks = []
         cv.namedWindow('Input')
         cv.setMouseCallback('Input', self.mouse_point, 0, )
         cv.imshow('Input', self.img)
-        cv.waitKey(5000)
+        cv.waitKey(10000)
         cv.destroyAllWindows()
 
-        seed = self.clicks[-1]
-        out = self.region_growing(seed)
-        cv.imwrite(str(self.diff_threshold)+'/region_growing.png',out)
+        if not os.path.exists(str(len(self.clicks))+'_seeds'):
+            os.mkdir(str(len(self.clicks))+'_seeds')
+        self.region_growing(self.clicks)
+
 
 if __name__ == "__main__":
-    segmenter = RegionGrowing(5.0)
+    segmenter = RegionGrowing(5)
     segmenter.segmentation()
