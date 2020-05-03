@@ -6,7 +6,8 @@ from matplotlib import pyplot as plt
 class RegionGrowing(object):
     def __init__(self, diff_threshold):
         self.diff_threshold = diff_threshold
-        self.img_path = 'shadedobj.png'
+        self.img_path = 'defective_weld.tif'
+        self.color_img = cv.imread(self.img_path, cv.IMREAD_REDUCED_COLOR_2)
         self.img = cv.imread(self.img_path, cv.IMREAD_REDUCED_GRAYSCALE_2)
 
     def get4neighbours(self, x, y):
@@ -65,12 +66,27 @@ class RegionGrowing(object):
                     cv.imshow("Progress",outimg)
                     cv.waitKey(1)
                     if step % 200 == 0:
-                        cv.imwrite(str(len(self.clicks))+'_seeds'+'/region_growing_'+str(step)+'.png',outimg)
+                        pass
+                        # cv.imwrite(str(len(self.clicks))+'_seeds'+'/region_growing_'+str(step)+'.png',outimg)
 
             step += 1
-        print("DONE")
-        cv.destroyAllWindows()
-        cv.imwrite(str(len(self.clicks))+'_seeds'+'/region_growing_final.png',outimg)
+        # print("DONE")
+        # cv.destroyAllWindows()
+        # # cv.imwrite(str(len(self.clicks))+'_seeds'+'/region_growing_final.png',outimg)
+        # cv.imwrite('output_'+ self.img_path, outimg)
+
+        fig = plt.figure()
+        ax1 = fig.add_subplot(131)
+        ax1.imshow(self.color_img.astype(np.uint8))
+        ax1.title.set_text('Originl Image')
+        ax2 = fig.add_subplot(132)
+        ax2.imshow(self.img, cmap='gray')
+        ax2.title.set_text('Gray Image')
+        ax3 = fig.add_subplot(133)
+        ax3.imshow(outimg, cmap='gray')
+        ax3.title.set_text('Output Image')
+        plt.savefig('results_'+self.img_path)
+        plt.show()
 
     def segmentation(self):
         self.clicks = []
@@ -80,8 +96,8 @@ class RegionGrowing(object):
         cv.waitKey(10000)
         cv.destroyAllWindows()
 
-        if not os.path.exists(str(len(self.clicks))+'_seeds'):
-            os.mkdir(str(len(self.clicks))+'_seeds')
+        # if not os.path.exists(str(len(self.clicks))+'_seeds'):
+        #     os.mkdir(str(len(self.clicks))+'_seeds')
         self.region_growing(self.clicks)
 
 
