@@ -9,6 +9,7 @@ class RegionGrowing(object):
         self.img_path = 'defective_weld.tif'
         self.color_img = cv.imread(self.img_path, cv.IMREAD_REDUCED_COLOR_2)
         self.img = cv.imread(self.img_path, cv.IMREAD_REDUCED_GRAYSCALE_2)
+        self.img = cv.GaussianBlur(self.img,(3, 3), 0)
 
     def get4neighbours(self, x, y):
         out = []
@@ -44,21 +45,20 @@ class RegionGrowing(object):
 
     def region_growing(self, seeds):
         checkpoints = []
-        outimg = np.zeros_like(self.img)
+        outimg = np.ones(self.img.shape) * 255
         for seed in seeds:
             checkpoints.append([(seed[0], seed[1])])
         processed = np.zeros(self.img.shape, dtype=np.bool)
-
         step = 0
         while (checkpoints != [[]] * len(seeds)):
             for i in range(len(seeds)):
                 if len(checkpoints[i]) > 0:
                     p = checkpoints[i].pop(0)
                     processed[p] = True
-                    outimg[p[0], p[1]] = 255
+                    outimg[p[0], p[1]] = 0
                     for q in self.get4neighbours(p[0], p[1]):
                         if abs(self.img[q[0], q[1]].astype('float32')  - self.img[p[0], p[1]].astype('float32')) < self.diff_threshold:
-                            outimg[q[0], q[1]] = 255
+                            outimg[q[0], q[1]] = 0
                             if not processed[q]:
                                 checkpoints[i].append(q)
                             processed[q] = True
@@ -66,8 +66,7 @@ class RegionGrowing(object):
                     cv.imshow("Progress",outimg)
                     cv.waitKey(1)
                     if step % 200 == 0:
-                        pass
-                        # cv.imwrite(str(len(self.clicks))+'_seeds'+'/region_growing_'+str(step)+'.png',outimg)
+                        cv.imwrite(str(len(self.clicks))+'_seeds'+'/region_growing_'+str(step)+'.png',outimg)
 
             step += 1
         # print("DONE")
@@ -93,7 +92,7 @@ class RegionGrowing(object):
         cv.namedWindow('Input')
         cv.setMouseCallback('Input', self.mouse_point, 0, )
         cv.imshow('Input', self.img)
-        cv.waitKey(10000)
+        cv.waitKey(5000)
         cv.destroyAllWindows()
 
         # if not os.path.exists(str(len(self.clicks))+'_seeds'):
@@ -102,5 +101,5 @@ class RegionGrowing(object):
 
 
 if __name__ == "__main__":
-    segmenter = RegionGrowing(5)
+    segmenter = RegionGrowing(8)
     segmenter.segmentation()
