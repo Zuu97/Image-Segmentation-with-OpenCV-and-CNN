@@ -9,12 +9,20 @@ import cv2 as cv
 
 class BasicLevelSet(object):
     def __init__(self):
-        self.num_iterations = 100
-        color_img= cv.imread('color_image.jpg')
-        self.color_img = cv.cvtColor(color_img, cv.COLOR_BGR2RGB)
-        self.gray_img = cv.imread('color_image.jpg', cv.IMREAD_GRAYSCALE)
+        self.num_iterations = 200
+        self.color_img = cv.cvtColor(
+                            cv.resize(
+                                    cv.imread('Lenna.png'),
+                                    (240, 240)
+                                    ),
+                            cv.COLOR_BGR2RGB)
+
+        self.gray_img = cv.resize(
+                            cv.imread('two_obj.png', cv.IMREAD_GRAYSCALE),
+                            (240, 240)
+                            )
         self.img = self.gray_img - np.mean(self.gray_img)
-        self.img_smooth = cv.GaussianBlur(self.img ,(5, 5), 0)
+        self.img_smooth = cv.GaussianBlur(self.img ,(3, 3), 0)
 
     @staticmethod
     def grad(x):
@@ -30,7 +38,7 @@ class BasicLevelSet(object):
     def initialize_phi(self, initshape ='rectangle'):
         phi = -1.0*np.ones(self.img_smooth.shape[:2])
         if initshape == 'rectangle':
-            phi[20:, 70:-90] = 1.
+            phi[20:-20, 20:-20] = 1.
         else: # Circle
             r = 48
             M, N = phi.shape
@@ -56,18 +64,18 @@ class BasicLevelSet(object):
         self.ax3 = fig1.add_subplot(133)
         self.ax3.imshow(self.phi, cmap=cm.coolwarm)
         self.ax3.title.set_text(r"$\phi$")
-        plt.savefig('phi.png')
+        plt.savefig('Lenna_phi.png')
         plt.pause(1.)
 
         # Plotting the (clipped) level-set function phi and the image with level curve
-        self.fig2 = plt.figure()
-        self.ax3 = self.fig2.add_subplot(121, projection='3d')
+        self.fig2 = plt.figure(figsize=(15,5))
+        self.ax3 = self.fig2.add_subplot(131, projection='3d')
         self.ax3.view_init(elev=30., azim=-210)
         M, N = self.phi.shape
         self.X = np.arange(0, N, 1)
         self.Y = np.arange(0, M, 1)
         self.X, self.Y = np.meshgrid(self.X, self.Y)
-        self.ax4 = self.fig2.add_subplot(122)
+        self.ax4 = self.fig2.add_subplot(132)
         self.ax4.imshow(self.gray_img, cmap='gray')
 
         self.g = g
@@ -76,49 +84,26 @@ class BasicLevelSet(object):
         self.plot_initials()
         dt = 1.
         ims = []
-        for i in range(self.num_iterations):
+        for i in range(self.num_iterations+1):
             grad_phi = BasicLevelSet.grad(self.phi)
             grad_phi_norm = BasicLevelSet.norm(grad_phi)
             phi_t = - self.g * grad_phi_norm
             self.phi = self.phi + dt * phi_t
 
             self.ax3.cla()
-            surf = self.ax3.plot_surface(self.X, self.Y, np.clip(self.phi, -3.0, 3.0), cmap=cm.bwr, linewidth=0, antialiased=False) # I clipped phi fro visualization as it grows large in negative direction
+            surf = self.ax3.plot_surface(self.X, self.Y, np.clip(self.phi, -3.0, 3.0),
+                                         cmap=cm.bwr, linewidth=0, antialiased=False)
             plt.pause(0.1)
             for c in self.ax4.collections:
                 c.remove()
-            self.ax4.contour(self.phi, levels=[0], colors=['red'])
+            self.ax4.contour(self.phi, levels=[0], colors=['yellow'])
             self.fig2.suptitle("Iterations {:d}".format(i))
             if i == self.num_iterations - 1:
-
-                phii = np.dstack([self.phi] * 3)
-                output_img = self.color_img * phii
-
-                # plt.imshow()
-                # fig3 = plt.figure()
-                # ax1 = fig3.add_subplot(131)
-                # ax1.imshow(self.color_img.astype(np.uint8))
-                # ax1.title.set_text('Originl Image')
-                # ax2 = fig3.add_subplot(132)
-                # ax2.imshow(output_img, cmap='gray')
-                # ax2.title.set_text('Binary Mask')
-                # ax3 = fig3.add_subplot(133)
-                # ax3.imshow(output_img.astype(np.uint8))
-                # ax3.title.set_text("Output Image")
-                # plt.savefig('results.png')
-                # plt.show()
-
-                plt.imshow(self.color_img.astype(np.uint8))
-                plt.savefig('Originl Image.png')
+                ax5 = self.fig2.add_subplot(133)
+                ax5.imshow(self.color_img.astype(np.uint8))
+                ax5.title.set_text('Resized Color Input')
+                plt.savefig('Lenna_results.png')
                 plt.show()
-
-                plt.imshow(output_img, cmap='gray')
-                plt.savefig('Binary Mask.png')
-                plt.show()
-
-                cv.imshow('Output Image',output_img)
-                cv.imwrite('Output Image.png', output_img)
-                cv.waitKey(5000)
 
 if __name__ == "__main__":
     model = BasicLevelSet()
